@@ -1,0 +1,156 @@
+import tkinter as tk
+from tkinter import messagebox
+import json
+import os
+import hashlib
+
+USER_FILE = "users.json"
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def load_users():
+    if os.path.exists(USER_FILE):
+        with open(USER_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USER_FILE, "w") as f:
+        json.dump(users, f)
+
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Login & Register")
+        self.geometry("400x500")
+        self.configure(bg="white")
+        self.users = load_users()
+        self.current_user = None
+        self.show_login_screen()
+
+    def show_login_screen(self):
+        self.clear_widgets()
+        frame = tk.Frame(self, bg="#E3F2FD", padx=20, pady=20)
+        frame.pack(fill="both", expand=True)
+
+        tk.Label(frame, text="Login", font=("Helvetica", 20, "bold"), bg="#E3F2FD", fg="#0D47A1").pack(pady=10)
+
+        tk.Label(frame, text="Username", bg="#E3F2FD").pack(anchor="w")
+        self.username_entry = tk.Entry(frame, font=("Helvetica", 12))
+        self.username_entry.pack(fill="x", pady=5)
+
+        tk.Label(frame, text="Password", bg="#E3F2FD").pack(anchor="w")
+        self.password_entry = tk.Entry(frame, show="*", font=("Helvetica", 12))
+        self.password_entry.pack(fill="x", pady=5)
+
+        tk.Button(frame, text="Login", bg="#0D47A1", fg="white", font=("Helvetica", 12), command=self.login).pack(pady=10, fill="x")
+        tk.Button(frame, text="Register", bg="#BBDEFB", font=("Helvetica", 12), command=self.show_register_screen).pack(fill="x")
+
+    def show_register_screen(self):
+        self.clear_widgets()
+        frame = tk.Frame(self, bg="#EFEBE9", padx=20, pady=20)
+        frame.pack(fill="both", expand=True)
+
+        tk.Label(frame, text="Register", font=("Helvetica", 20, "bold"), bg="#EFEBE9", fg="#4E342E").pack(pady=10)
+
+        tk.Label(frame, text="Username", bg="#EFEBE9").pack(anchor="w")
+        self.reg_username = tk.Entry(frame, font=("Helvetica", 12))
+        self.reg_username.pack(fill="x", pady=5)
+
+        tk.Label(frame, text="Password", bg="#EFEBE9").pack(anchor="w")
+        self.reg_password = tk.Entry(frame, show="*", font=("Helvetica", 12))
+        self.reg_password.pack(fill="x", pady=5)
+
+        tk.Label(frame, text="Confirm Password", bg="#EFEBE9").pack(anchor="w")
+        self.confirm_password = tk.Entry(frame, show="*", font=("Helvetica", 12))
+        self.confirm_password.pack(fill="x", pady=5)
+
+        tk.Button(frame, text="Submit", bg="#6D4C41", fg="white", font=("Helvetica", 12), command=self.register).pack(pady=10, fill="x")
+        tk.Button(frame, text="Back to Login", bg="#D7CCC8", font=("Helvetica", 12), command=self.show_login_screen).pack(fill="x")
+
+    def show_main_screen(self):
+        self.clear_widgets()
+        self.geometry("500x450")
+        frame = tk.Frame(self, bg="#FCE4EC", padx=20, pady=20)
+        frame.pack(fill="both", expand=True)
+
+        tk.Label(frame, text=f"Welcome, {self.current_user}!", font=("Helvetica", 18, "bold"), bg="#FCE4EC", fg="#AD1457").pack(pady=10)
+
+        canvas = tk.Canvas(frame, width=300, height=200, bg="white", highlightthickness=0)
+        canvas.pack(pady=20)
+
+        # Gambar rumah lucu
+        # Atap segitiga
+        canvas.create_polygon(100, 80, 200, 80, 150, 30, fill="#FF8A65", outline="black")
+        # Badan rumah persegi panjang
+        canvas.create_rectangle(100, 80, 200, 160, fill="#FFCCBC", outline="black")
+        # Pintu
+        canvas.create_rectangle(140, 110, 160, 160, fill="#8D6E63", outline="black")
+
+        tk.Label(frame, text="Klik rumah untuk melihat profil", font=("Helvetica", 10), bg="#FCE4EC", fg="#AD1457").pack()
+
+        def on_canvas_click(event):
+            # Deteksi area rumah (kasar)
+            if 100 <= event.x <= 200 and 30 <= event.y <= 160:
+                self.show_profile_screen()
+
+        canvas.bind("<Button-1>", on_canvas_click)
+
+        tk.Button(frame, text="Logout", bg="#AD1457", fg="white", font=("Helvetica", 12), command=self.logout).pack(pady=10, fill="x")
+
+    def show_profile_screen(self):
+        self.clear_widgets()
+        self.geometry("400x350")
+        frame = tk.Frame(self, bg="#FAFAFA", padx=20, pady=20)
+        frame.pack(fill="both", expand=True)
+
+        tk.Label(frame, text="User Profile", font=("Helvetica", 18, "bold"), bg="#FAFAFA", fg="#424242").pack(pady=10)
+        tk.Label(frame, text=f"Username: {self.current_user}", font=("Helvetica", 14), bg="#FAFAFA").pack(pady=5)
+
+        tk.Button(frame, text="Back to Home", bg="#E0E0E0", font=("Helvetica", 12), command=self.show_main_screen).pack(pady=10, fill="x")
+        tk.Button(frame, text="Logout", bg="#D81B60", fg="white", font=("Helvetica", 12), command=self.logout).pack(fill="x")
+
+    def login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        hashed = hash_password(password)
+
+        if username in self.users and self.users[username] == hashed:
+            self.current_user = username
+            self.show_main_screen()
+        else:
+            messagebox.showerror("Login Failed", "Username atau password salah.")
+
+    def register(self):
+        username = self.reg_username.get()
+        password = self.reg_password.get()
+        confirm = self.confirm_password.get()
+
+        if not username or not password:
+            messagebox.showwarning("Input Error", "Semua field harus diisi.")
+            return
+        if password != confirm:
+            messagebox.showwarning("Password Mismatch", "Konfirmasi password tidak sesuai.")
+            return
+        if username in self.users:
+            messagebox.showwarning("User Exists", "Username sudah terdaftar.")
+            return
+
+        self.users[username] = hash_password(password)
+        save_users(self.users)
+        messagebox.showinfo("Success", "Registrasi berhasil! Silakan login.")
+        self.show_login_screen()
+
+    def logout(self):
+        self.current_user = None
+        self.geometry("400x500")
+        self.show_login_screen()
+
+    def clear_widgets(self):
+        for widget in self.winfo_children():
+            widget.destroy()
+
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()
